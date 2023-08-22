@@ -1,0 +1,21 @@
+full sample query:
+
+logfile='/var/log/nginx/access.log'
+| group requests = count(), errors = count(status >= 500) by uriPath
+| let error_percent = errors * 100 / requests
+
+
+notes:
+
+//specify the name of the logfile that logs must reside in. can be from any host, typically gathered via the Scalyr Agent. if you stop here you will just get all logs
+logfile='/var/log/nginx/access.log'
+
+// group all logs. if you leave off the "by uriPath", then this will simply create a one line table counting total requests as a total count of all logs meeting the above query, 
+// and errors as a count of all logs from above query that meet the status filter. This is  because we haven't given anything to group by, so all logs are in one group
+| group requests = count(), errors = count(status >= 500)
+
+//now adding the by uriPath, this causes each uriPath in the total log set to be a unique row in the returned table, with the requests and errors count com=lumns
+| group requests = count(), errors = count(status >= 500) by uriPath
+
+//finally we create a new column 'error_percent'
+| let error_percent = errors * 100 / requests
