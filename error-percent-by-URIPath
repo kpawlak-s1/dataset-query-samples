@@ -1,8 +1,12 @@
+Goal:
+take a list of URIs from a nginx log and determine with URI paths have the highest percentage of errors
+
 full sample query:
 
 logfile='/var/log/nginx/access.log'
 | group requests = count(), errors = count(status >= 500) by uriPath
 | let error_percent = errors * 100 / requests
+| sort error_percent
 
 
 notes:
@@ -19,3 +23,7 @@ logfile='/var/log/nginx/access.log'
 
 //finally we create a new column 'error_percent'
 | let error_percent = errors * 100 / requests
+
+
+//this sorts the rows (therefore the uriPaths) based on the value in the error_percent column
+|sort error_percent
