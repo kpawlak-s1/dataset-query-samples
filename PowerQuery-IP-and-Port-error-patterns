@@ -30,6 +30,7 @@ notes:
 // once that is found, the parse function continues through the log message to the ':' character, and immediately afterward is looking for the $port$ value which will 
 // be written to the newly created 'port' field. in this case, port is just a number. we know it always comes after the colon in "x.x.x.x:" and is always followed again 
 // by the character ": " so we do not need to write a regex for it. we can simply write ":port=number:" and it will grab this pattern immediately following the IP it has found
+// lastly we are specifying that we are looking to get all of this out of the error field. The error field is something we have already pulled from the log
 
       | parse ".*transport: Error while dialing dial tcp $ip{regex=\\d+\\.\\d+\\.\\d+\\.\\d+}$:$port=number$: " from error
 
