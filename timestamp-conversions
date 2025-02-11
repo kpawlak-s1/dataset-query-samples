@@ -1,0 +1,66 @@
+there are multiple time conversion / manipulation commands to understand.
+
+when working with timestamp values, generally you want them to be in nanosecond format as this is the default format for handling time values in the S1 data lake
+
+
+
+| let STRFtime=strftime(timestamp)
+| let time_string=string(timestamp)
+| let nanos=strptime(STRFtime, '%Y-%m-%dT%H:%M:%S.%f+')
+| let undo_nanos=strftime(nanos)
+| let nanosdiff = timestamp - nanos
+| let isodiff = STRFtime  - undo_nanos
+| columns time_string, timestamp, STRFtime, nanos, undo_nanos, nanosdiff, isodiff
+
+
+  first, we are starting with the built in field 'timestamp'
+
+if you just call this column, you will get a value shown to you that looks like
+
+Feb 11 · 1:32:38.119 pm
+
+however, this is the platform making things 'pretty' for you. so in the first line we ask to see the timestamp value converted to a string called time_string
+
+in the output of the above query you will see that the same timestamp in raw form is actually
+
+1739309558119239351
+
+next up, we use the strftime() function to convert the raw number string to a format that is readable by both a compute and a human:
+
+2025-02-11T21:32:38.119+0000
+
+this is (roughly) an ISO8601 timestamp
+
+now, if you want to convert this back to the nanoseconds, we use the strptime function, which yields
+
+1,739,309,558,119,000,000
+
+you'll notice this number is a little different from the timestamp string. a tiny deciaml of a second gets lost in this transition. if you want to reassure yourself that its insignificat
+
+  use strftime() to create the undo_nanos field, which is
+
+025-02-11T21:32:38.119+0000
+
+so its less than .001 seconds difference. In fact, if you want to calculate the differences, you can use simple math:
+
+| let nanosdiff = timestamp - nanos
+
+  to find the differences
+
+conversely if you try to calculate the difference bewteen the two ISO8601 values (STRFtime and undo_nanos) you will get 
+
+NaN
+
+
+
+So as you can see, you should do all comparisons using nano seconds and then at the end you can convert to an ISO timestamp format for readability using strftime()
+
+of if you are feeding in an ISO8601 timestamp from a log, you can use strptime() to convert it to nanoseconds and then use it for time comparisons.
+
+what kinds of time functions would you need to do this for?
+
+  timebuckets, comparisons over time, looking for things happening x seconds/minutes/hours ago, etc
+
+
+
+
