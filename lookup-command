@@ -1,0 +1,30 @@
+First lets create an example lookup table to use. this can be done via the savelookup command
+
+
+| let myvalue=1 , mysecondvalue=2
+| limit 2
+| savelookup 'testsavedlookup'
+
+
+run this in powerquery and it will create a lookup table, which looks like this:
+
+{
+  "columnNames": ["myvalue", "mysecondvalue"],
+  "rows": [
+    [1, 2],
+    [1, 2]
+  ]
+}
+
+
+and then here is an example command to retrieve a value from said table
+
+| let matching_value_in_existing_query=1
+| limit 1
+| lookup value_retrived_from_lookup=mysecondvalue from 'testsavedlookup' by myvalue=matching_value_in_existing_query
+
+I'm creating a new field named "matching_value_in_existign_query" and setting it be equal to 1
+limiting my table to 1 row (just to make things simple / reduce processing power) 
+and then I am taking the value, checking it against the colunn "myvalue" in the lookup table. 
+if/when that matches, then I am extracting the value in the column "mysecondvalue" from the lookup table,
+and putting it into my PQ results in a field named "matching_value_in_existing_query"
