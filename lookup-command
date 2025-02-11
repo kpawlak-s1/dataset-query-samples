@@ -1,4 +1,6 @@
-First lets create an example lookup table to use. this can be done via the savelookup command
+First lets create an example lookup table to use. this can be done in the S1 UI in the "Configuration Tables" section: https://community.sentinelone.com/s/article/000006442
+
+however they can also be created via the savelookup command, which I will use just to keep everything in powerquery
 
 
 | let myvalue=1 , mysecondvalue=2
@@ -28,3 +30,6 @@ limiting my table to 1 row (just to make things simple / reduce processing power
 and then I am taking the value, checking it against the colunn "myvalue" in the lookup table. 
 if/when that matches, then I am extracting the value in the column "mysecondvalue" from the lookup table,
 and putting it into my PQ results in a field named "matching_value_in_existing_query"
+
+lookup docs: https://community.sentinelone.com/s/article/000006607
+savelookup docs: https://community.sentinelone.com/s/article/000010763
