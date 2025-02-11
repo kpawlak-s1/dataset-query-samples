@@ -1,11 +1,41 @@
-//you want to combine two columns into a single column for use. for example, you have two columns that both track urls. one is called domain, the other called sni
+You want to combine two columns into a single column for use. for example, you have two columns that both track urls. 
+one is called domain, the other called sni. for some events, the domain field is populated, for others the sni field
+when would this happen? well maybe you're looking at both DNS logs from a dns resolver and some web browser history
+and the fields don't agree. the point of OCSF is to reduce the likelihood this happens but it will still happen non-zero times
 
-//start with your initial search. for exmaple
-dataSource.vendor='Sophos' event.type='Content Filtering'
-//this will return sophos filtering logs, but for some reason some times the url is in domain field, sometimes in sni field
+Let's start with this example
 
-// we can combine with the let command
+| let domain = 'testurl.com' , sni = 'NULL'
+//using the let command to generate test data
+| limit 1
+// using the limit command so we just have 1 row instead of 100K rows of the same value
+| let myURL= domain + sni
+// test 1 - append the two values together
 
-  | let myURL = domain + sni
 
-  // this combines the two rows. in my case, one or the other was null, so it just reults in having a single field that works
+what you will see is that the result in the myURL field looks like "testurl.comNULL"
+
+not helpful. so instead we will use a ternary operator on the let command to create this
+
+the syntax for the ternary operator is
+
+test ? value-if-true : value-if-false
+
+and applying it to this example it would be
+
+| let domain = 'testurl.com' , sni = 'NULL'
+| limit 1
+| let myURL = (sni ='NULL') ? domain : sni
+
+this checks if the sni field is 'NULL'. if it is, then myURL is set to be equal to the value in the domain field. 
+if sni field is not 'NULL' then myURL is set to be equal to the value in the sni field
+
+if you run the above you will see that myURL is correctly set to the value of domain, 'testurl.com'
+
+If desired you can also flip the domain and sni fields to verify it works correctly in that case ase well
+
+| let domain = 'NULL' , sni = 'testurl.com'
+| limit 1
+| let myURL = (sni ='NULL') ? domain : sni
+
+in which case sni is now 'testurl.com' and myURL is set to match it, which is testurl.com
