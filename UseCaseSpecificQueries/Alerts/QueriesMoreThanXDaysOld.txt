@@ -1,0 +1,22 @@
+//this query looks for queries requesting data older than 90 days (from the moment the query is executed)
+
+//search for meta logs in S1 tracking query actions
+tag contains "queryOutcome"
+
+//correct certain timestamps that have different numbers of trailing zeroes
+| let STARTTIME= startTime * 1000*1000*1000, NOW=now()
+
+// calculate number of milliseconds from "oldest millisecond queried in my query" vs the current time
+| let STARTvsNOW= NOW - STARTTIME
+
+//statically define number of milliseconds in last 90 days
+| let ninetyvsNOW= 7747509857039104
+
+//compare number of ms queried vs number of ms in 90 days to calcuate number of days
+| let HowManyDaysAgo= STARTvsNOW / ninetyvsNOW * 90
+
+//set output columns
+| columns STARTvsNOW , ninetyvsNOW, HowManyDaysAgo 
+
+//filter to only queries that ask for data older than 90 days. This was my example time frame, adjust this static definition if you care about queries older than a different threshold of 90 days
+| filter HowManyDaysAgo > 90
