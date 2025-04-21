@@ -1,0 +1,36 @@
+//in order to perform anomaly detection we must create a baseline to compare against, then track recent behavior and compare
+
+
+//first lets set up the join statement - the first query will establish the historic baseline, the second the current behavior
+|join
+
+
+//create first query and name it 'baseline'
+//for this example we are going to look to detect anomalies on log ingestion rates for data sources, so we will select for meta logs which have the logBytes metric
+baseline = (metric = 'logBytes' serverHost = 'scalyr-metalog'
+
+//next we are going to get the number of gigagbytes ingested per day (1 day timebucket) for each data source. Generally we will group on the datasource.name field
+//however in the case of a custom parser it is possible for data to not have this field. so if it does not exist, we will alternatively group on the host field which should exist
+//whichever field we are grouping on (datasource or host) will get combined into a single field 'source'
+| group gb = sum(value)/1024/1024/1024 by timestamp = timebucket('1d'), source = dataSource.name ? dataSource.name : host
+
+//now we are going to through the previous result and for each value in the 'source' field we just created, calcualte the average and stddev
+| group moving_average = average(gb), std_dev = stddev(gb) by source),
+
+//now we are going to artificially only search recent logs (by filtering for logs with a timestamp that is more recent than 86400000000000 nanoseconds ago which happens to be 24 hours
+current = (metric = 'logBytes' serverHost = 'scalyr-metalog'
+| filter timestamp > now() - 86400000000000
+
+//and now let's see how many GBs came in that time frame
+| group current_gb = sum(value)/1024/1024/1024 by source = dataSource.name ? dataSource.name : host)
+
+//now we join these based on the shared source field
+on source
+
+
+// copmare the last 24 hours vs the average. then divide by the standard deviation to see how many std devs the last 24 hours is from the average
+| let z_score = (current_gb - moving_average) / std_dev
+
+//if above threshold determine anomaly
+| let anomalies = abs(z_score) > 2
+| filter anomalies = true
