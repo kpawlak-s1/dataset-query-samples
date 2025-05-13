@@ -1,0 +1,51 @@
+Step 1: Ingest your TI
+
+option 1 - ingest them as logs using the SentinelOne Collector, HEC, etc. For example, here is a document for how to ingest Threat Intelligence from Recorded Future: https://app.scalyr.com/solutions/import-recordedfuture
+
+option 2 - import them as a datatable, which can then be used for lookups in queries
+
+__________________________
+
+Step 2:
+
+make sure you  have a parser that will parse the threat intel. in our example you are doing so with a parser named 'intel' and generating fields ThreatIntel.type, ThreatIntel.Family, and sha256, with the example values below
+
+ThreatIntel.type, ThreatIntel.Family, sha256
+Ransomware, Ryuk, 2047bb9f00b16a6c8afba9f9a59ca4173a644b6cxxxxxxxxxxxxxxxxxx
+
+____________________________________
+
+Step 3: 
+
+perform a join query on the actual data and these threat intel logs in order to generate a result
+
+here is an example:
+
+| join
+
+intel = {
+
+ThreatIntel.Type="Ransomware", ThreatIntel.Family="Ryuk", sha256=*
+| let tgt.file.sha256=sha256
+| columns ThreatIntel.type, ThreatIntel.Family, tgt.file.sha256
+},
+
+my_logs={ 
+tgt.file.sha256=* | group count() by tgt.file.sha256, endpoint.name
+}
+
+on tgt.file.sha256
+
+This should result in a table of any matches, which will have the fields
+
+tgt.file.sha256, endpoint.name, ThreatIntel.type, ThreatIntel.family
+
+_______________
+
+now turn it into an alert
+
+option A: use an SDL alert and simply copy the query in. In this case you can just set it to trigger for number of rows >0 since we care about all hits
+
+option B: create a PQ monitor using this query to create a new table / log source with something like logfile="TI_Evals"
+
+and then create a STAR rule querying for logfile="TI_Evals"
