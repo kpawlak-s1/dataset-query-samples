@@ -1,0 +1,47 @@
+//the exact values in this query are designed to be run over a 24 hour period. If you want to change that (run it over only a few hours or over many days) then you will need to adjust
+//what would you adjust? Mainly the | filter timestamp > now() - 3600000000000  and the length of the timebucket
+// the 3600000000000 is the number of nanoseconds in the last hour. Since I want to compare last hour vs last 24 hour, this was an appropriate number
+// if I wanted to compare last 5 minutes vs last hour, then I would divide 3600000000000 by 12 to get the number of ns in 5 min, you would then also change the time bucket to 5 min
+//if i wanted to compare last 24 hours vs the last 30 days, then I would multiply 3600000000000 by 24 to get ns in last 24 hours. also change time bucket to 1 day or 24 hours
+
+
+
+//in order to perform anomaly detection we must create a baseline to compare against, then track recent behavior and compare
+
+//first lets set up the join statement - the first query will establish the historic baseline, the second the current behavior
+|join
+
+//create first query and name it 'baseline'
+//for this example we are going to look to detect anomalies on log ingestion rates for data sources
+//more specifically I am counting the number of logs (not the number of bytes) received
+//here is a link to another example that uses log bytes 
+//  https://github.com/kpawlak-s1/dataset-query-samples/blob/main/UseCaseSpecificQueries/anomalyDetectionExample
+  
+baseline = (
+
+//filter to only logs that contain the name field of a data source
+dataSource.name =*
+//for each data source for each hour, find the number of logs 
+| group LogsPerHour=count() by dataSource.name, timestamp=timebucket('1 hour')
+// now get the average and standard deviation in these hourly log rate values for each data source. 
+| group AvgLPH=avg(LogsPerHour), StDevLPH=stddev(LogsPerHour) by dataSource.name
+
+//now we have a baseline 
+),
+
+//now let's find the current  usage
+current = (
+dataSource.name =*
+//lets only look at logs from the last hour
+| filter timestamp > now() - 3600000000000   //this is 1 hour ago in nanoseconds
+  //and let's just find how many logs we have for each data source in that hour
+| group CurrentLogsPerHour=count() by dataSource.name
+)
+
+  //join the two queries
+on dataSource.name 
+  //compare the last hour vs the average and find out how many standard deviations above or below the avg the last hour has been
+| let StDevsFromAvg = abs ( (CurrentLogsPerHour - AvgLPH) / StDevLPH )
+
+  //define how sensitive to make the result - in this example, we are going to only alert if the last hour is 2 standard deviations above or below the average
+| filter StDevsFromAvg > 2
